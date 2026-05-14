@@ -31,6 +31,7 @@ interface BankContextType {
   isLoading: boolean;
   error: string | null;
   loginWithPin: (pin: string) => Promise<boolean>;
+  register: (fullName: string, pin: string) => Promise<boolean>;
   verifyAccountNumber: (accountNumber: string) => Promise<string | null>;
   performTransfer: (receiverAccount: string, amount: number, narration: string) => Promise<{ success: boolean; message: string }>;
   refreshData: () => Promise<void>;
@@ -64,22 +65,63 @@ export const BankProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     setError(null);
     try {
-      // Mock login for demo. In real app, call /api/auth/pin
-      // We'll simulate a successful login for pin '123456'
-      if (pin === "123456") {
-        const mockUser: UserProfile = {
-          id: "mock-uuid-123",
-          fullName: "Access User",
-          accountNumber: "0123456789"
-        };
-        setUserProfile(mockUser);
-        return true;
-      } else {
-        setError("Invalid PIN");
+      const response = await fetch("/api/auth/pin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Login failed");
         return false;
       }
+
+      const user: UserProfile = {
+        id: data.user.id,
+        fullName: data.user.full_name,
+        accountNumber: data.user.account_number,
+      };
+
+      setUserProfile(user);
+      setAccountBalance(data.user.account_balance);
+      // In a real app, you'd also load transactions here
+      return true;
     } catch (err) {
       setError("Authentication failed");
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const register = async (fullName: string, pin: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName, pin }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || "Registration failed");
+        return false;
+      }
+
+      const newUser: UserProfile = {
+        id: data.user.id,
+        fullName: data.user.full_name,
+        accountNumber: data.user.account_number,
+      };
+      
+      setUserProfile(newUser);
+      setAccountBalance(data.user.account_balance);
+      return true;
+    } catch (err) {
+      setError("Connection error during registration");
       return false;
     } finally {
       setIsLoading(false);
@@ -136,6 +178,7 @@ export const BankProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         error,
         loginWithPin,
+        register,
         verifyAccountNumber,
         performTransfer,
         refreshData
