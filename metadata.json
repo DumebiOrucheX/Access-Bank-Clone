@@ -1,0 +1,6 @@
+{
+  "name": "Access More",
+  "description": "A high-fidelity fintech banking application for Access Bank, featuring secure PIN authentication, real-time transfers, and bill payments.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
